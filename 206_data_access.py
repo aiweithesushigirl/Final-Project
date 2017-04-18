@@ -116,12 +116,6 @@ def get_movie_info(movie):
 
     return omdb_data
 
-# print (get_movie_info(["inherent vice"]))
-# info = get_movie_info(["inherent vice"])
-# print (info["imdbID"])
-# print (len(info["Language"].split(",")))
-# print(info["Actors"].split(",")[0])
-
 
 ## A Movies class that saves the datas of a movie
 
