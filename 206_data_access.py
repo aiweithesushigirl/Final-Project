@@ -57,17 +57,33 @@ try:
 except:
     CACHE_DICTION = {}
 
-## SET UP DATABASE SO THAT WE CAN APPEND DATA TO THE TABLE LATER
+## SET UP DATABASE SO THAT WE CAN APPEND DATA TO THE TABLE LATER. THE DATABASE INCLUDES THREE TABLES, NAMELY MOVIES, TWEETS AND USERS
 
 conn = sqlite3.connect('final_project.db')
 cur = conn.cursor()
 
 cur.execute("DROP TABLE IF EXISTS Movies ")
 
+table_spec_1 = "CREATE TABLE IF NOT EXISTS "
+table_spec_1 += 'Movies (imdb_id TEXT PRIMARY KEY, '
+table_spec_1 += 'title TEXT, director TEXT, num_lang INTEGER, imdb_rating TEXT, top_billed_actor TEXT)'
+cur.execute(table_spec_1)
+
+
+cur.execute("DROP TABLE IF EXISTS Tweets ")
+
 table_spec_2 = "CREATE TABLE IF NOT EXISTS "
-table_spec_2 += 'Movies (imdb_id TEXT PRIMARY KEY, '
-table_spec_2 += 'title TEXT, director TEXT, num_lang INTEGER, imdb_rating TEXT, top_billed_actor TEXT)'
+table_spec_2 += 'Tweets (tweet_id TEXT PRIMARY KEY, '
+table_spec_2 += 'retweet_count INTEGER, text TEXT, screen_name TEXT, user_id TEXT, favorite_count INTEGER)'
 cur.execute(table_spec_2)
+
+
+cur.execute("DROP TABLE IF EXISTS Users ")
+
+table_spec_3 = "CREATE TABLE IF NOT EXISTS "
+table_spec_3 += 'Users (user_id TEXT REFERENCES Tweets(user_id) ON UPDATE SET NULL, '
+table_spec_3 += 'favourites_count INTEGER, description TEXT, screen_name TEXT REFERENCES Tweets(screen_name) ON UPDATE SET NULL, followers_count INTEGER)'
+cur.execute(table_spec_3)
 
 ## FUNCTIONS SET UP TO CACHE THE DATA FROM OMDB
 def getWithCaching(url, params):
@@ -116,10 +132,10 @@ def get_movie_info(movie):
 
     return omdb_data
 
-
 ## A Movies class that saves the datas of a movie
 
 class Movie(object):
+
 ## Constructor, SAVE THE DATA INTO DIFFERENT INSTANCE VARIABLES
 
     def __init__(self, movie_dict):
@@ -137,6 +153,7 @@ class Movie(object):
         statement = 'INSERT OR IGNORE INTO Movies VALUES (?, ?, ?, ?, ?, ?)'
         cur.execute(statement, [self.id, self.title, self.director, self.num_lang, self.rating, self.top_billed_actor])
         conn.commit()
+
 ## The method will also return a list of director names of the movies
 
         query = "SELECT director FROM Movies;"
@@ -144,19 +161,22 @@ class Movie(object):
         names_lst = []
         for name in cur:
             names_lst.append(name[0])
-
-        # conn.close()
         return names_lst
+
 ## A LIST OF MOVIE NAMES TO BE USED
-movie_lst = ["Chinatown", "Logan", "Chicago", "fast and furious", "inherent vice"]
+
+movie_lst = ["Godfather", "Logan", "harry potter", "fast and furious", "inherent vice", "get out", "raw", "forrest gump", "moana", "frozen"]
 movie_info_lst = []
 movie_ob_lst = []
+
 ## Invoke the get_movie_function() and save the movie dictionaries to a list
 for movie in movie_lst:
     movie_info_lst.append(get_movie_info(movie))
+
 # print (movie_info_lst)
 
 ## Pass in the list of dictionaries to create a list of Movie objects
+
 for movie_dict in movie_info_lst:
     movie_ob_lst.append(Movie(movie_dict))
 # print (movie_ob_lst)
@@ -191,48 +211,134 @@ class Tweet(object):
         self.director = director_lst
 ## LOAD THE TWEETS ABOUT THE DIRECTOR INTO A DATABASE
     def load_tweet_data(self):
-        conn = sqlite3.connect('final_project.db')
-        cur = conn.cursor()
-
-        cur.execute("DROP TABLE IF EXISTS Tweets ")
-
-        table_spec_2 = "CREATE TABLE IF NOT EXISTS "
-        table_spec_2 += 'Tweets (user_id TEXT PRIMARY KEY, '
-        table_spec_2 += 'retweet_count INTEGER, text TEXT, screen_name TEXT, tweet_id TEXT, favorite_count INTEGER)'
-        cur.execute(table_spec_2)
 
         statement = 'INSERT OR IGNORE INTO Tweets VALUES (?, ?, ?, ?, ?, ?)'
-        for item in tweet_dict["statuses"]:
-            cur.execute(statement, [item["user"]["id_str"], item["retweet_count"], item["text"], item["user"]["screen_name"], item["id_str"], item["favorite_count"]])
+        for item in self.tweet_dict["statuses"]:
+            cur.execute(statement, [item["id_str"], item["retweet_count"], item["text"], item["user"]["screen_name"], item["user"]["id_str"], item["favorite_count"]])
         conn.commit()
 
-tweet_dict = get_director_tweets("James Mangold")
-#
-# for item in tweet_dict["statuses"]:
-#     print (item["id_str"])
-#     print (item["created_at"])
-#     print (item["text"])
-#     # print (item["retweeted_status"]["user"]["friends_count"])
-#     if item["entities"]["user_mentions"]:
-#         print (item["entities"]["user_mentions"][0]["screen_name"])
-#     print (item["user"]["id_str"])
-#     print (item["user"]["screen_name"])
 
-director_tweet_lst = []
-director_ob_lst = []
+
+
 ## Invoke the get_director_tweet() and save the tweet dictionaries to a list
-for director in director_lst:
-    director_tweet_lst.append(get_director_tweets(director))
+
 
 ## Pass in the list of dictionaries to create a list of Tweet objects
-for director_dict in director_tweet_lst:
-    director_ob_lst.append(Tweet(director_dict))
-print (director_ob_lst)
-for director in director_ob_lst:
-    director.load_tweet_data()
 
-object = Tweet(get_director_tweets("James Mangold"))
-object.load_tweet_data()
+
+
+good_director =[]
+
+query = "SELECT director FROM Movies WHERE imdb_rating >= 7.5;"
+
+# query = "SELECT director FROM Movies ;"
+cur.execute(query)
+for row in cur:
+    good_director.append(row[0])
+print (good_director)
+object_lst = []
+for director in good_director:
+    object = Tweet(get_director_tweets(director))
+    object_lst.append(object)
+for object in object_lst:
+    object.load_tweet_data()
+
+# Make invocations to your Twitter functions.
+# Use your Twitter search function to search for (your choice): either each of the directors of those three movies, or one star actor
+# in each of those three movies, or each of the titles of those three movies.
+# NOTE: It may be useful to have a class Tweet for this reason, because you can make a list of instances of the Tweet class each time you get data,
+#  and then concatenate (squish) the lists together…
+# Save either a list of instances of class Tweet, or a list of Tweet dictionaries, or a list of Tweet info tuples, in a variable to use later.
+# Then, use your function to access data about a Twitter user to get information about each of the Users in the "neighborhood",
+# as it's called in social network studies -- every user who posted any of the tweets you retrieved and every user who is mentioned in them.
+# It may be useful to have a class TwitterUser for this reason, as you can then create lists of user instances instead of lists of dictionaries!
+# But you can manage the data in dictionaries as well, if you like.
+# Save either a resulting list of instances of your class TwitterUser or a list of User-representative dictionaries in a variable.
+# Make sure your code accesses the whole neighborhood -- every tweet poster and
+
+
+
+user_lst =[]
+query = "SELECT user_id FROM Tweets WHERE retweet_count >= 8;"
+cur.execute(query)
+for row in cur:
+    user_lst.append(row[0])
+print (user_lst)
+
+def get_user(input: object) -> object:
+	unique_identifier = "twitter_{}".format(input)
+	if unique_identifier in CACHE_DICTION:
+		# print('using cached data for', input)
+		twitter_result = CACHE_DICTION[unique_identifier]
+	else:
+		# print('getting data from internet for', input)
+		twitter_result = api.get_user(input)
+		CACHE_DICTION[unique_identifier] = twitter_result
+		f = open(CACHE_FNAME, 'w')
+		f.write(json.dumps(CACHE_DICTION))
+
+
+	# print (len(twitter_result[0]))
+	return twitter_result
+
+user_info_lst = []
+for user in user_lst:
+    user_info_lst.append(get_user(user))
+print (user_info_lst)
+
+
+
+
+class User:
+
+## CONSTRCTOR
+    def __init__(self, user_dict):
+        self.user_dict = user_dict
+
+
+## LOAD THE TWEETS ABOUT THE DIRECTOR INTO A DATABASE
+    def load_user_data(self):
+
+        statement = 'INSERT OR IGNORE INTO Users VALUES (?, ?, ?, ?, ?)'
+        cur.execute(statement, [self.user_dict["id_str"], self.user_dict["favourites_count"], self.user_dict["description"], self.user_dict["screen_name"], self.user_dict["followers_count"]])
+        conn.commit()
+
+for user in user_info_lst:
+    print (user)
+    item = User(user)
+    item.load_user_data()
+
+## CREATE A TUPLE OF THE SCREEN NAME WHOSE TWEETS HAVE BEEN RETWEETED MORE THAN 8 TIMES OF THE USER AND HIS/HER DESCRIPTION
+joined_result =[]
+query = "SELECT Tweets.screen_name, Users.description FROM Tweets INNER JOIN Users on Tweets.user_id = Users.user_id WHERE retweet_count >=8";
+cur.execute(query)
+for row in cur:
+    if row:
+        joined_result.append(row)
+print (joined_result)
+
+## CREATE A WORDLIST OF KEYWORDS "MOVIE" "FILM" AND CHECK WHETHER ANY OF THE DESCRIPTIONS CONTAIN EITHER OF THOSE TWO WORDS
+
+word_lst = ["movie", "film"]
+movie_lover_lst =[]
+for tup in joined_result:
+    if any(word in tup[1] for word in word_lst):
+        movie_lover_lst.append(tup[0])
+
+cur.execute('SELECT * FROM Users');
+result = cur.fetchall()
+print (len(result))
+print (movie_lover_lst)
+rate = ((len(movie_lover_lst)/len(result)*100))
+
+fname = open("movie_lover_rate.csv", 'w')
+fname.write("num_movies, num_users, rate")
+# for a in post_insts:
+#     emo_scores = a.emo_score()
+#     comment_counts = len(a.comments)
+#     like_counts = len(a.likes)
+#     data = (emo_scores, comment_counts, like_counts)
+#     fname.write("{},{},{}".format(*data)+"\n")
 
 
             # Put your tests here, with any edits you now need from when you turned them in with your project plan.
@@ -248,8 +354,8 @@ class Tests(unittest.TestCase):
         for movie in movie_ob_lst:
             self.assertEqual(type (movie.load_table_data(conn, cur)), type ([]), "testing the method load_movie_data() returns a list")
 
-    def test3(self):
-        self.assertEqual(len(movie_lst), 5)
+    # def test3(self):
+    #     self.assertEqual(len(movie_lst), 6)
 
 
     def test4(self):
@@ -293,6 +399,21 @@ class Tests(unittest.TestCase):
         self.assertTrue (type(result), type(""))
         conn.close ()
 
+    def test9(self):
+        conn = sqlite3.connect ('final_project.db')
+        cur = conn.cursor ()
+        cur.execute ('SELECT * FROM Users');
+        result = cur.fetchall ()
+        self.assertTrue (len(result[1])== 5, "Testing that there are 5 columns in the Users table")
+        conn.close ()
+
+    def test10(self):
+        conn = sqlite3.connect('final_project.db')
+        cur = conn.cursor()
+        cur.execute('SELECT * FROM Movies');
+        result = cur.fetchall()
+        self.assertTrue(len(result) == len(movie_lst))
+        conn.close()
 unittest.main (verbosity=2)
 
 
