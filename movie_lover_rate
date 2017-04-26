@@ -1,0 +1,5 @@
+percentage,6.896551724137931
+num_users,58
+num_movies,12
+num_movie_lover,4
+"('tt0110912', 'recommended_Pulp Fiction', 'Quentin Tarantino', 3, '8.9', 'Tim Roth')","('tt0109830', 'recommended_Forrest Gump', 'Robert Zemeckis', 1, '8.8', 'Tom Hanks')","('tt3315342', 'recommended_Logan', 'James Mangold', 2, '8.4', 'Hugh Jackman')","('tt5052448', 'recommended_Get Out', 'Jordan Peele', 1, '8.2', 'Daniel Kaluuya')","('tt1201607', 'recommended_Harry Potter and the Deathly Hallows: Part 2', 'David Yates', 1, '8.1', 'Ralph Fiennes')","('tt1979320', 'recommended_Rush', 'Ron Howard', 5, '8.1', 'Chris Hemsworth')","('tt3741834', 'recommended_Lion', 'Garth Davis', 3, '8.1', 'Sunny Pawar')","('tt0371746', 'recommended_Iron Man', 'Jon Favreau', 5, '7.9', 'Robert Downey Jr.')","('tt3521164', 'recommended_Moana', 'Ron Clements, Don Hall, John Musker, Chris Williams', 1, '7.7', ""Auli'i Cravalho"")","('tt4954522', 'Raw', 'Julia Ducournau', 1, '7.5', 'Garance Marillier')","('tt2294629', 'Frozen', 'Chris Buck, Jennifer Lee', 2, '7.5', 'Kristen Bell')","('tt0031298', 'Fast and Furious', 'Busby Berkeley', 1, '6.2', 'Franchot Tone')"

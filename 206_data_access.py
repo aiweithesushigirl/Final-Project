@@ -147,9 +147,17 @@ class Movie(object):
         self.rating = movie_dict["imdbRating"]
         self.top_billed_actor = movie_dict["Actors"].split(",")[0]
 
+## The __str__() method will add "recommended" in front of the movie ratings if it is higher than 7.5
+    def __str__(self):
+        if float(self.rating):
+            if float (self.rating) > 7.5:
+                self.title = "recommended_{}".format(self.movie["Title"])
+        return self.title
+
 ## The load_movie_data() method will load all the movie date into THE DATABASE SET UP IN THE BEGINNING
 
     def load_table_data(self, conn, cur):
+        self.title = self.title.__str__()
         statement = 'INSERT OR IGNORE INTO Movies VALUES (?, ?, ?, ?, ?, ?)'
         cur.execute(statement, [self.id, self.title, self.director, self.num_lang, self.rating, self.top_billed_actor])
         conn.commit()
@@ -163,9 +171,21 @@ class Movie(object):
             names_lst.append(name[0])
         return names_lst
 
+def sort_movies():
+    sort_lst = []
+    query = "SELECT * FROM Movies;"
+    cur.execute(query)
+    for row in cur:
+        sort_lst.append(row)
+    sort_lst = sorted(sort_lst, key=lambda x: float(x[4]), reverse=True)
+    return sort_lst
+
+
+
+
 ## A LIST OF MOVIE NAMES TO BE USED
 
-movie_lst = ["Godfather", "Logan", "harry potter", "fast and furious", "inherent vice", "get out", "raw", "forrest gump", "moana", "frozen"]
+movie_lst = ["Logan","harry potter", "fast and furious", "get out", "raw", "forrest gump", "moana", "frozen","iron man","pulp fiction", "rush", "lion"]
 movie_info_lst = []
 movie_ob_lst = []
 
@@ -184,9 +204,12 @@ director_lst = []
 
 ## User the movie objects to call method load_table_data() to load the data into the database
 for movie in movie_ob_lst:
-    print (movie.load_table_data(conn, cur))
+    # print (movie.load_table_data(conn, cur))
+    print (movie.__str__())
     director_lst.append(movie.load_table_data(conn, cur))
-
+print ("Below is the sorted movie list")
+sorted_m = sort_movies()
+print (sort_movies())
 ## Make requests to Tweepy to get tweet information of the directors, cache every request. The function will return a dictionary
 
 def get_director_tweets(input: object) -> object:
@@ -225,36 +248,21 @@ class Tweet(object):
 
 ## Pass in the list of dictionaries to create a list of Tweet objects
 
+director =[]
 
-
-good_director =[]
-
-query = "SELECT director FROM Movies WHERE imdb_rating >= 7.5;"
+query = "SELECT director FROM Movies;"
 
 # query = "SELECT director FROM Movies ;"
 cur.execute(query)
 for row in cur:
-    good_director.append(row[0])
-print (good_director)
+    director.append(row[0])
+# print (director)
 object_lst = []
-for director in good_director:
+for director in director:
     object = Tweet(get_director_tweets(director))
     object_lst.append(object)
 for object in object_lst:
     object.load_tweet_data()
-
-# Make invocations to your Twitter functions.
-# Use your Twitter search function to search for (your choice): either each of the directors of those three movies, or one star actor
-# in each of those three movies, or each of the titles of those three movies.
-# NOTE: It may be useful to have a class Tweet for this reason, because you can make a list of instances of the Tweet class each time you get data,
-#  and then concatenate (squish) the lists together…
-# Save either a list of instances of class Tweet, or a list of Tweet dictionaries, or a list of Tweet info tuples, in a variable to use later.
-# Then, use your function to access data about a Twitter user to get information about each of the Users in the "neighborhood",
-# as it's called in social network studies -- every user who posted any of the tweets you retrieved and every user who is mentioned in them.
-# It may be useful to have a class TwitterUser for this reason, as you can then create lists of user instances instead of lists of dictionaries!
-# But you can manage the data in dictionaries as well, if you like.
-# Save either a resulting list of instances of your class TwitterUser or a list of User-representative dictionaries in a variable.
-# Make sure your code accesses the whole neighborhood -- every tweet poster and
 
 
 
@@ -263,7 +271,7 @@ query = "SELECT user_id FROM Tweets WHERE retweet_count >= 8;"
 cur.execute(query)
 for row in cur:
     user_lst.append(row[0])
-print (user_lst)
+# print (user_lst)
 
 def get_user(input: object) -> object:
 	unique_identifier = "twitter_{}".format(input)
@@ -284,9 +292,7 @@ def get_user(input: object) -> object:
 user_info_lst = []
 for user in user_lst:
     user_info_lst.append(get_user(user))
-print (user_info_lst)
-
-
+# print (user_info_lst)
 
 
 class User:
@@ -304,7 +310,7 @@ class User:
         conn.commit()
 
 for user in user_info_lst:
-    print (user)
+    # print (user)
     item = User(user)
     item.load_user_data()
 
@@ -315,11 +321,11 @@ cur.execute(query)
 for row in cur:
     if row:
         joined_result.append(row)
-print (joined_result)
+# print (joined_result)
 
 ## CREATE A WORDLIST OF KEYWORDS "MOVIE" "FILM" AND CHECK WHETHER ANY OF THE DESCRIPTIONS CONTAIN EITHER OF THOSE TWO WORDS
 
-word_lst = ["movie", "film"]
+word_lst = ["movie", "film", "cinema"]
 movie_lover_lst =[]
 for tup in joined_result:
     if any(word in tup[1] for word in word_lst):
@@ -327,19 +333,20 @@ for tup in joined_result:
 
 cur.execute('SELECT * FROM Users');
 result = cur.fetchall()
-print (len(result))
-print (movie_lover_lst)
+
 rate = ((len(movie_lover_lst)/len(result)*100))
 
-fname = open("movie_lover_rate.csv", 'w')
-fname.write("num_movies, num_users, rate")
-# for a in post_insts:
-#     emo_scores = a.emo_score()
-#     comment_counts = len(a.comments)
-#     like_counts = len(a.likes)
-#     data = (emo_scores, comment_counts, like_counts)
-#     fname.write("{},{},{}".format(*data)+"\n")
+result_dict = {"num_movies": len(movie_lst),"num_users": len(result), "num_movie_lover": len(movie_lover_lst), "percentage":rate}
+print ("Below is the result dictionary")
+print (result_dict)
 
+with open('movie_lover_rate', 'w') as csv_file:
+    writer = csv.writer(csv_file)
+    for key, value in result_dict.items():
+       writer.writerow([key, value])
+    writer.writerow(sorted_m)
+
+csv_file.close()
 
             # Put your tests here, with any edits you now need from when you turned them in with your project plan.
 class Tests(unittest.TestCase):
@@ -349,13 +356,15 @@ class Tests(unittest.TestCase):
         fpt.close ()
         obj = json.loads (fpt_str)
         self.assertEqual (type (obj), type ({"hi": "bye"}))
+        fpt.close()
 
     def test2(self):
         for movie in movie_ob_lst:
             self.assertEqual(type (movie.load_table_data(conn, cur)), type ([]), "testing the method load_movie_data() returns a list")
 
-    # def test3(self):
-    #     self.assertEqual(len(movie_lst), 6)
+    def test3(self):
+        movie = Movie(get_movie_info("Logan"))
+        self.assertEqual(movie.__str__().split("_")[0], "recommended")
 
 
     def test4(self):
@@ -371,7 +380,7 @@ class Tests(unittest.TestCase):
         cur = conn.cursor ()
         cur.execute ('SELECT * FROM Movies');
         result = cur.fetchall ()
-        self.assertTrue (len (result[1]) == 6, "Testing that there are 3 columns in the Movies table")
+        self.assertTrue (len (result[1]) >= 1, "Testing that there are more than 1 movies in the Movies table")
         conn.close ()
 
     def test6(self):
@@ -414,6 +423,12 @@ class Tests(unittest.TestCase):
         result = cur.fetchall()
         self.assertTrue(len(result) == len(movie_lst))
         conn.close()
+
+    def test11(self):
+         self.assertTrue(float(sort_movies()[0][4]) > float(sort_movies()[1][4]))
+
+
+
 unittest.main (verbosity=2)
 
 
